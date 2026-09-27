@@ -1,0 +1,124 @@
+@import 'tailwindcss';
+
+/*
+ * Paleta y tokens del escenario.
+ * Reconstruyen el aspecto del programa original: un círculo azul/morado con
+ * anillos concéntricos que se aclaran hacia el centro, sobre fondo casi negro.
+ * Se definen aquí (y no en un tailwind.config.js) porque Tailwind 4 es
+ * CSS-first: `@theme` publica las variables como utilidades de Tailwind
+ * (por ejemplo `bg-stage-core` o `text-gold`).
+ */
+@theme {
+  --color-stage-void: #04082b;
+  --color-stage-outer: #0d1a63;
+  --color-stage-mid: #1a2a92;
+  --color-stage-inner: #2f3fbe;
+  --color-stage-core: #4553d6;
+  --color-stage-glow: #8f98ff;
+  --color-plinth: #070d3a;
+  --color-gold: #f7c948;
+  --color-amber-bright: #f59e0b;
+  --color-hit: #15803d;
+  --color-miss: #991b1b;
+  --color-ink: #0b1030;
+}
+
+/* Reset mínimo: el juego ocupa siempre la pantalla completa sin scroll. */
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-stage-void);
+  color: white;
+  font-family: 'Montserrat Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  overflow: hidden;
+  /* La arena es una presentación: el texto no debe seleccionarse al hacer clic. */
+  user-select: none;
+}
+
+/*
+ * Silueta trapezoidal de las opciones (invertida: ancha arriba, estrecha
+ * abajo), que es la forma característica del programa. Se usa clip-path en
+ * lugar de una imagen para que escale a cualquier resolución del proyector.
+ */
+.option-shape {
+  clip-path: polygon(0 0, 100% 0, 93% 100%, 7% 100%);
+}
+
+/* Botones de las opciones: brillo superior y transición de estado. */
+.option-button {
+  transition:
+    filter 150ms ease,
+    background-color 300ms ease;
+}
+
+.option-button:hover:not(:disabled) {
+  filter: brightness(1.35);
+}
+
+.option-button:disabled {
+  cursor: default;
+}
+
+/* Estado de acierto y de fallo revelados durante el mostrar. */
+.option-correct {
+  background-color: var(--color-hit);
+}
+
+.option-wrong {
+  background-color: var(--color-miss);
+}
+
+/* Opción que el grupo eligió pero no era la correcta. */
+.option-missed {
+  background-color: var(--color-miss);
+}
+
+/* Anillo de luz pulsante del foco central del escenario. */
+.stage-glow {
+  background: radial-gradient(
+    circle at center,
+    var(--color-stage-glow) 0%,
+    transparent 65%
+  );
+  animation: stage-breathe 7s ease-in-out infinite;
+}
+
+@keyframes stage-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
+/* Aparición escalonada de las opciones, imitando la entrada del programa. */
+@keyframes option-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.option-enter {
+  animation: option-enter 260ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-glow,
+  .option-enter {
+    animation: none;
+  }
+}
