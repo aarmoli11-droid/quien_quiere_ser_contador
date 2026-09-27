@@ -21,7 +21,7 @@ import { useQuestionBankStore } from './questionBank'
  * Máximo de grupos que admite la pantalla de configuración.
  *
  * No es un límite técnico sino de presentación: por encima de esto, la columna
- * lateral deja de caber en un proyector y el anfitrión tendría difficulties
+ * lateral deja de caber en un proyector y el anfitrión tendría dificultades
  * para leer los nombres desde la sala.
  */
 export const MAX_GROUPS = 20
