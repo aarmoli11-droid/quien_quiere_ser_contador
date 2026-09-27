@@ -70,7 +70,8 @@ describe('ResultsScreen', () => {
     partidaConRespuestas([0])
     const wrapper = mount(ResultsScreen)
 
-    expect(wrapper.text()).toContain('Ganan los Equipo 1')
+    // Con letra y nombre en un texto, como en el panel de grupos.
+    expect(wrapper.text()).toContain('Ganan los Grupo A — Equipo 1')
   })
 
   it('lista todos los grupos en la tabla', () => {

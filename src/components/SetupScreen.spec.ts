@@ -60,19 +60,39 @@ describe('SetupScreen', () => {
     expect(iniciar?.attributes('disabled')).toBeUndefined()
   })
 
-  it('añade un grupo desde el formulario y limpia los campos', async () => {
+  it('añade un grupo desde el formulario y limpia el campo', async () => {
     const game = preparar(0)
     const wrapper = montar()
 
-    const [nombre, etiqueta] = wrapper.findAll('input[type="text"]')
-    await nombre?.setValue('Los Contadores')
-    await etiqueta?.setValue('A')
+    const nombre = wrapper.find('input[type="text"]')
+    await nombre.setValue('Los Contadores')
     await wrapper.find('form').trigger('submit')
 
     expect(game.groups).toHaveLength(1)
     expect(game.groups[0]?.name).toBe('Los Contadores')
-    expect(game.groups[0]?.label).toBe('A')
-    expect((nombre?.element as HTMLInputElement).value).toBe('')
+    expect((nombre.element as HTMLInputElement).value).toBe('')
+  })
+
+  it('asigna la etiqueta A, B, C... solo y renumera al quitar', async () => {
+    const game = preparar(0)
+    const wrapper = montar()
+
+    for (const nombre of ['aarón', 'bárbara', 'carla']) {
+      await wrapper.find('input[type="text"]').setValue(nombre)
+      await wrapper.find('form').trigger('submit')
+    }
+
+    // El formulario no pide etiqueta: la pone el store por orden de alta.
+    expect(wrapper.findAll('input[type="text"]')).toHaveLength(1)
+    expect(game.groups.map((g) => g.label)).toEqual(['A', 'B', 'C'])
+    // Y se ve como una sola línea de texto, no como letra en un círculo.
+    expect(wrapper.text()).toContain('Grupo A — aarón')
+    expect(wrapper.text()).toContain('Grupo C — carla')
+
+    await wrapper.findAll('button').filter((b) => b.text() === 'Quitar')[1]?.trigger('click')
+
+    expect(game.groups.map((g) => g.label)).toEqual(['A', 'B'])
+    expect(wrapper.text()).toContain('Grupo B — carla')
   })
 
   it('lista los grupos y permite quitar uno', async () => {

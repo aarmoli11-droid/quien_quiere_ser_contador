@@ -3,12 +3,14 @@
  * Pantalla de configuración: equipos y ajustes de la partida.
  *
  * Es la pantalla de la que arranca todo. El anfitrión da de alta a los grupos
- * (con nombre y etiqueta) y ajusta cuánto dura la partida, cuánto vale cada
- * pregunta y qué dificultad se usa en el desempate.
+ * (solo el nombre: la etiqueta se asigna sola por posición) y ajusta cuánto
+ * dura la partida, cuánto vale cada pregunta y qué dificultad se usa en el
+ * desempate.
  */
 import { computed, ref } from 'vue'
 
 import { unlockAudio } from '@/audio/sfx'
+import { groupDisplayName } from '@/lib/groupLabel'
 import { MAX_GROUPS, useGameStore } from '@/stores/game'
 import { useQuestionBankStore } from '@/stores/questionBank'
 import type { Difficulty } from '@/types'
@@ -19,9 +21,8 @@ const emit = defineEmits<{ (e: 'start'): void; (e: 'open-admin'): void }>()
 const game = useGameStore()
 const bank = useQuestionBankStore()
 
-/** Campos del formulario de alta de grupo, antes de tocar el store. */
+/** Campo de nombre del formulario de alta de grupo, antes de tocar el store. */
 const nuevoNombre = ref('')
-const nuevaEtiqueta = ref('')
 
 /** Dificultades disponibles, para los dos selectores. */
 const DIFICULTADES: ReadonlyArray<{ value: Difficulty; texto: string }> = [
@@ -29,7 +30,9 @@ const DIFICULTADES: ReadonlyArray<{ value: Difficulty; texto: string }> = [
   { value: 'dificil', texto: 'Difícil' },
 ]
 
-/** Resumen del banco para que el anfitrión sepa si habrá preguntas suficientes. */
+/**
+ * Resumen del banco para que el anfitrión sepa si habrá preguntas suficientes.
+ */
 const resumenBanco = computed(() => {
   const total = bank.questions.length
   if (total === 0) return 'El banco está vacío: no se puede jugar.'
@@ -37,12 +40,11 @@ const resumenBanco = computed(() => {
   return `${jugables} pregunta${jugables === 1 ? '' : 's'} jugable${jugables === 1 ? '' : 's'} de ${total}.`
 })
 
-/** Añade el grupo del formulario y deja los campos limpios para el siguiente. */
+/** Añade el grupo del formulario y deja el campo limpio para el siguiente. */
 function añadirGrupo(): void {
-  const creado = game.addGroup(nuevoNombre.value, nuevaEtiqueta.value || undefined)
+  const creado = game.addGroup(nuevoNombre.value)
   if (creado === null) return
   nuevoNombre.value = ''
-  nuevaEtiqueta.value = ''
 }
 
 /** Emite el evento de inicio solo si el store permite empezar. */
@@ -74,6 +76,12 @@ function empezar(): void {
         </div>
 
         <form class="mb-4 flex flex-wrap gap-2" @submit.prevent="añadirGrupo">
+          <!--
+            Solo se pide el nombre. La etiqueta (A, B, C...) la pone el store
+            según el orden de alta y se renumera al quitar alguien, así que
+            escribirla a mano solo podía desincronizar lo que se ve aquí de lo
+            que se ve en la partida.
+          -->
           <input
             v-model="nuevoNombre"
             type="text"
@@ -81,14 +89,6 @@ function empezar(): void {
             placeholder="Nombre del grupo (opcional)"
             class="min-w-40 flex-1 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white placeholder:text-white/40 focus:border-gold focus:outline-none"
             aria-label="Nombre del grupo"
-          />
-          <input
-            v-model="nuevaEtiqueta"
-            type="text"
-            maxlength="8"
-            placeholder="Etiqueta"
-            class="w-24 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white placeholder:text-white/40 focus:border-gold focus:outline-none"
-            aria-label="Etiqueta del grupo"
           />
           <button
             type="submit"
@@ -109,12 +109,12 @@ function empezar(): void {
             :key="grupo.id"
             class="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2"
           >
-            <span
-              class="flex size-9 shrink-0 items-center justify-center rounded-full bg-stage-core font-bold text-white"
-            >
-              {{ grupo.label }}
-            </span>
-            <span class="flex-1 truncate font-semibold">{{ grupo.name }}</span>
+            <!--
+              Nombre plano, con la letra dentro del texto ("Grupo A — aarón").
+              El círculo con la letra se quitó porque repetía la misma
+              información en mayúsculas y quitaba sitio a la lista.
+            -->
+            <span class="flex-1 truncate font-semibold">{{ groupDisplayName(grupo) }}</span>
             <button
               type="button"
               class="rounded-md border border-white/20 px-2 py-1 text-xs text-white/70 transition hover:border-miss hover:text-white"

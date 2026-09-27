@@ -8,6 +8,7 @@
  */
 import { computed } from 'vue'
 
+import { groupDisplayName } from '@/lib/groupLabel'
 import { useGameStore } from '@/stores/game'
 
 /** Se emite para volver a la configuración. */
@@ -30,7 +31,7 @@ const estadoDesempate = computed(() => {
     <header class="text-center">
       <h1 class="text-4xl font-extrabold text-gold">Fin de la partida</h1>
       <p v-if="ganador" class="mt-2 text-2xl font-bold">
-        Ganan los {{ ganador.name }} con {{ ganador.score }} puntos
+        Ganan los {{ groupDisplayName(ganador) }} con {{ ganador.score }} puntos
       </p>
       <p v-else-if="estadoDesempate" class="mt-2 text-xl text-amber-bright" role="status">
         {{ estadoDesempate }}
@@ -58,8 +59,8 @@ const estadoDesempate = computed(() => {
             <span v-if="fila.tied" class="text-xs font-normal text-white/50">(empate)</span>
           </td>
           <th scope="row" class="px-4 py-3 font-semibold">
-            <span class="mr-2 text-white/50">{{ fila.label }}</span>
-            {{ fila.name }}
+            <!-- Igual que en el panel de grupos: letra y nombre en un texto. -->
+            {{ groupDisplayName(fila) }}
           </th>
           <td class="px-4 py-3 text-right font-bold tabular-nums">{{ fila.score }}</td>
         </tr>

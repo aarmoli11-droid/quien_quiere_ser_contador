@@ -5,6 +5,7 @@ import { play, startTension, stop } from '@/audio/soundBank'
 import { playAnswerRegistered, playTimeUp } from '@/audio/sfx'
 import { DEFAULT_SECONDS_PER_QUESTION } from '@/composables/useTimer'
 import { createId } from '@/lib/id'
+import { labelForIndex } from '@/lib/groupLabel'
 import { isPlayableQuestion, pickRandomQuestions, removeUsedQuestions, shuffleQuestion } from '@/lib/shuffle'
 import {
   applyRoundPoints,
@@ -178,23 +179,21 @@ export const useGameStore = defineStore('game', () => {
   /**
    * Añade un grupo.
    *
-   * El nombre se recorta y, si viene vacío, se usa la etiqueta como nombre para
-   * que la tabla de posiciones nunca muestre una fila sin identificar.
+   * La etiqueta la asigna el store según la posición: el anfitrión solo escribe
+   * el nombre. Un campo de etiqueta manual solo producía duplicados ("Grupo A"
+   * dos veces) y estados imposibles de leer, cuando la letra ya identifica al
+   * grupo de un vistazo.
    */
-  function addGroup(name: string, label?: string): Group | null {
+  function addGroup(name: string): Group | null {
     if (groups.value.length >= MAX_GROUPS) return null
 
-    // La etiqueta por defecto usa la letra de la posición: A, B, C...
-    const etiquetaPorDefecto = `Grupo ${String.fromCharCode(65 + groups.value.length)}`
-    const etiqueta = toSafeText(label) || etiquetaPorDefecto
-    // Si no hay nombre se usa la etiqueta, para que la tabla de posiciones nunca
-    // muestre una fila sin identificar.
-    const nombre = toSafeText(name) || etiqueta
+    const label = labelForIndex(groups.value.length)
+    const nombre = toSafeText(name) || `Grupo ${label}`
 
     const nuevo: Group = {
       id: createId('g'),
       name: nombre,
-      label: etiqueta,
+      label,
       score: 0,
       currentAnswer: null,
     }
@@ -202,29 +201,36 @@ export const useGameStore = defineStore('game', () => {
     return nuevo
   }
 
-  /** Actualiza el nombre o la etiqueta de un grupo. `false` si no existe. */
-  function updateGroup(id: string, changes: { name?: string; label?: string }): boolean {
+  /** Actualiza el nombre de un grupo. `false` si no existe. */
+  function updateGroup(id: string, changes: { name?: string }): boolean {
     const existe = groups.value.some((g) => g.id === id)
     if (!existe) return false
     const actual = groups.value.find((g) => g.id === id)
     if (actual === undefined) return false
 
-    const etiqueta = toSafeText(changes.label) || actual.label
     const nombrePropuesto = toSafeText(changes.name)
     // Un nombre no utilizable (null, un objeto) se ignora y se conserva el que
-    // ya había: es preferible no tocarlo antes que sustituirlo por la etiqueta.
-    // Un nombre vacío sí es un borrado deliberado y cae en la etiqueta.
-    const nombre = nombrePropuesto === undefined ? actual.name : nombrePropuesto || etiqueta
+    // ya había: es preferible no tocarlo antes que sustituirlo por la designación.
+    // Un nombre vacío sí es un borrado deliberado y vuelve a la designación.
+    const nombre = nombrePropuesto === undefined ? actual.name : nombrePropuesto || `Grupo ${actual.label}`
 
-    groups.value = groups.value.map((g) => (g.id === id ? { ...g, name: nombre, label: etiqueta } : g))
+    groups.value = groups.value.map((g) => (g.id === id ? { ...g, name: nombre } : g))
     return true
   }
 
-  /** Elimina un grupo. `false` si no existía. */
+  /**
+   * Elimina un grupo. `false` si no existía.
+   *
+   * Las etiquetas se renumeran después: si se quita el grupo B de una lista
+   * A, B, C, el tercero pasa a ser B. Si no, la sala vería "Grupo C" sin
+   * grupo B y creería que se ha perdido alguien por el camino.
+   */
   function removeGroup(id: string): boolean {
     const antes = groups.value.length
     groups.value = groups.value.filter((g) => g.id !== id)
     if (groups.value.length === antes) return false
+
+    groups.value = groups.value.map((grupo, indice) => ({ ...grupo, label: labelForIndex(indice) }))
 
     // Si el grupo eliminado estaba seleccionado, se cierra el selector para no
     // dejar la pantalla en un estado imposible de seguir.

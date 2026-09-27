@@ -39,6 +39,20 @@ describe('GroupPanel', () => {
     expect(botones[1]?.text()).toContain('Los Contadores')
   })
 
+  it('muestra letra y nombre en una línea de texto, sin círculo', () => {
+    const wrapper = montar({
+      groups: [grupo('a', 'Los Auditores'), grupo('b', 'Grupo B')],
+    })
+
+    // Con nombre propio se compone "Grupo A — Los Auditores".
+    expect(wrapper.text()).toContain('Grupo A — Los Auditores')
+    // Sin nombre propio (el store rellena con la designación) no se duplica.
+    expect(wrapper.text()).toContain('Grupo B')
+    expect(wrapper.text()).not.toContain('Grupo B — Grupo B')
+    // El avatar circular era un <span> redondeado: ya no debe quedar ninguno.
+    expect(wrapper.findAll('.rounded-full')).toHaveLength(0)
+  })
+
   it('emite el id del grupo al pulsarlo', () => {
     const wrapper = montar({ groups: [grupo('a', 'A'), grupo('b', 'B')] })
 

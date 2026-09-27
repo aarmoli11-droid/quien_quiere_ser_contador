@@ -10,6 +10,7 @@
  * Un grupo que ya respondió queda marcado y no se puede volver a seleccionar:
  * su respuesta es definitiva.
  */
+import { groupDisplayName } from '@/lib/groupLabel'
 import type { Group, GroupAnswer } from '@/types'
 
 /** Grupos de la partida, en el orden en que se registraron. */
@@ -59,15 +60,14 @@ function yaRespondio(grupo: Group): boolean {
       :aria-pressed="grupo.id === selectedId"
       @click="emit('select', grupo.id)"
     >
-      <span
-        class="flex size-9 shrink-0 items-center justify-center rounded-full bg-stage-core text-sm font-bold"
-        aria-hidden="true"
-      >
-        {{ grupo.label }}
-      </span>
-
+      <!--
+        Nombre del grupo en una sola línea de texto, con la letra dentro:
+        "Grupo A" si el grupo no tiene nombre propio y "Grupo A — aarón" si lo
+        tiene. Antes era un círculo con la letra aparte, lo que repetía la misma
+        información en mayúsculas y empujaba el nombre a otra línea.
+      -->
       <span class="flex min-w-0 flex-1 flex-col">
-        <span class="truncate text-sm font-semibold">{{ grupo.name }}</span>
+        <span class="truncate text-sm font-semibold">{{ groupDisplayName(grupo) }}</span>
         <span class="text-xs text-white/60">
           {{ yaRespondio(grupo) ? 'Ha respondido' : 'Pendiente' }}
         </span>

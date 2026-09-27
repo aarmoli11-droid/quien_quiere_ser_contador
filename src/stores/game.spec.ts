@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { playedSounds } from '@/test/setup'
 import { isPlaying } from '@/audio/soundBank'
 import { createId } from '@/lib/id'
+import { groupDisplayName } from '@/lib/groupLabel'
 import type { GameConfig, Question } from '@/types'
 import { useGameStore } from './game'
 import { useQuestionBankStore } from './questionBank'
@@ -31,7 +32,7 @@ function preparar(numGrupos = 3, preguntas = BANCO) {
   bank.importBank(preguntas)
 
   const game = useGameStore()
-  for (let i = 0; i < numGrupos; i += 1) game.addGroup(`Equipo ${i + 1}`, `Grupo ${i + 1}`)
+  for (let i = 0; i < numGrupos; i += 1) game.addGroup(`Equipo ${i + 1}`)
   return { game, bank }
 }
 
@@ -46,40 +47,77 @@ describe('configuracion de grupos', () => {
     localStorage.clear()
   })
 
-  it('añade grupos con etiqueta automática', () => {
+  it('asigna las etiquetas A, B, C... por orden de alta', () => {
     const { game } = preparar(0)
 
     game.addGroup('Los Contadores')
     game.addGroup('Los Auditores')
-    // Sin etiqueta explícita se generan las letras A, B, C...
     game.addGroup('Tercero')
 
-    expect(game.groups.map((g) => g.label)).toEqual([
-      'Grupo A',
-      'Grupo B',
-      'Grupo C',
-    ])
+    // La etiqueta la pone el store según la posición: el anfitrión solo
+    // escribe el nombre.
+    expect(game.groups.map((g) => g.label)).toEqual(['A', 'B', 'C'])
   })
 
-  it('usa la etiqueta como nombre si el nombre viene vacío', () => {
+  it('usa la designación como nombre si el nombre viene vacío', () => {
     const { game } = preparar(0)
 
-    game.addGroup('', 'Los Contadores')
+    game.addGroup('')
 
     // Nunca debe quedar un grupo sin identificar en la tabla de posiciones.
-    expect(game.groups[0]?.name).toBe('Los Contadores')
+    expect(game.groups[0]?.name).toBe('Grupo A')
   })
 
-  it('recorta espacios en nombre y etiqueta', () => {
+  it('muestra "Grupo A — aarón" solo cuando hay nombre', () => {
+    const { game } = preparar(0)
+    game.addGroup('')
+    game.addGroup('aarón')
+
+    // Sin nombre propio basta la designación; con nombre, los dos.
+    expect(groupDisplayName(game.groups[0]!)).toBe('Grupo A')
+    expect(groupDisplayName(game.groups[1]!)).toBe('Grupo B — aarón')
+  })
+
+  it('renumera las etiquetas al quitar un grupo del medio', () => {
+    const { game } = preparar(0)
+    game.addGroup('aarón')
+    game.addGroup('bárbara')
+    game.addGroup('carla')
+    const intermedio = game.groups[1]
+    if (intermedio === undefined) throw new Error('sin grupos')
+
+    game.removeGroup(intermedio.id)
+
+    // Si no se renumerara, la sala vería "Grupo C" sin grupo B y creería que se
+    // ha perdido alguien por el camino.
+    expect(game.groups.map((g) => g.label)).toEqual(['A', 'B'])
+    expect(game.groups[1]?.name).toBe('carla')
+    expect(groupDisplayName(game.groups[1]!)).toBe('Grupo B — carla')
+  })
+
+  it('renumera también al quitar el primero y el último', () => {
+    const { game } = preparar(0)
+    game.addGroup('aarón')
+    game.addGroup('bárbara')
+    game.addGroup('carla')
+
+    game.removeGroup(game.groups[0]!.id)
+    expect(game.groups.map((g) => g.label)).toEqual(['A', 'B'])
+
+    game.removeGroup(game.groups[1]!.id)
+    expect(game.groups.map((g) => g.label)).toEqual(['A'])
+    expect(groupDisplayName(game.groups[0]!)).toBe('Grupo A — bárbara')
+  })
+
+  it('recorta espacios en el nombre', () => {
     const { game } = preparar(0)
 
-    game.addGroup('   Los Contadores   ', '  Grupo X  ')
+    game.addGroup('   Los Contadores   ')
 
     expect(game.groups[0]?.name).toBe('Los Contadores')
-    expect(game.groups[0]?.label).toBe('Grupo X')
   })
 
-  it('no deja pasar de MAX_GRUPPOS', () => {
+  it('no deja pasar de MAX_GROUPPOS', () => {
     const { game } = preparar(0)
     for (let i = 0; i < 25; i += 1) game.addGroup(`Equipo ${i}`)
 
@@ -111,21 +149,23 @@ describe('configuracion de grupos', () => {
     const objetivo = game.groups[0]
     if (objetivo === undefined) throw new Error('sin grupos')
 
-    game.updateGroup(objetivo.id, { name: '   ', label: '   ' })
+    game.updateGroup(objetivo.id, { name: '   ' })
 
-    expect(game.groups[0]?.name).not.toBe('')
+    // Vaciar el nombre devuelve a la designación, no a una cadena en blanco.
+    expect(game.groups[0]?.name).toBe('Grupo A')
   })
 
-  it('tolera que el nombre o la etiqueta no sean texto', () => {
+  it('tolera que el nombre no sea texto', () => {
     // Un `<input>` vacío llega como cadena, pero un estado restaurado a mano o
     // un import pueden traer `null` o un número: no debe romperse el alta.
     const { game } = preparar(0)
-    const vacio = game.addGroup(null as unknown as string, undefined)
-    const conNumero = game.addGroup(42 as unknown as string, 7 as unknown as string)
+    const vacio = game.addGroup(null as unknown as string)
+    const conNumero = game.addGroup(42 as unknown as string)
 
     expect(vacio?.name).toBe('Grupo A')
     expect(conNumero?.name).toBe('42')
-    expect(conNumero?.label).toBe('7')
+    // La etiqueta se sigue asignando sola aunque el nombre sea un número.
+    expect(conNumero?.label).toBe('B')
   })
 
   it('tolera una edición con tipos inválidos', () => {
@@ -133,12 +173,9 @@ describe('configuracion de grupos', () => {
     const objetivo = game.groups[0]
     if (objetivo === undefined) throw new Error('sin grupos')
 
-    game.updateGroup(objetivo.id, {
-      name: null as unknown as string,
-      label: undefined as unknown as string,
-    })
+    game.updateGroup(objetivo.id, { name: null as unknown as string })
 
-    // Al no llegar nada aprovechable, se conservan los valores buenos previos.
+    // Al no llegar nada aprovechable, se conserva el valor bueno previo.
     expect(game.groups[0]?.name).toBe(objetivo.name)
     expect(game.groups[0]?.label).toBe(objetivo.label)
   })
