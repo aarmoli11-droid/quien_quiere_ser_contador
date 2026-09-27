@@ -8,6 +8,8 @@
  */
 import { afterEach, vi } from 'vitest'
 
+import { resetAudioState } from '@/audio/soundBank'
+
 /** Registro de sonidos reproducidos, para poder inspeccionarlo en los tests. */
 export const playedSounds: string[] = []
 
@@ -50,6 +52,10 @@ installAudioStub()
 
 /** Reinicia el registro entre tests para que no se contamine de uno a otro. */
 afterEach(() => {
+  // El soundbank guarda el silencio y el volumen a nivel de módulo, así que sin
+  // esta llamada un test que silencie el audio dejaría mudos a todos los
+  // siguientes, independientemente del orden en que se ejecuten.
+  resetAudioState()
   playedSounds.length = 0
   vi.unstubAllGlobals()
   installAudioStub()
