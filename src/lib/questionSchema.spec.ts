@@ -90,22 +90,37 @@ describe('sanitizeQuestion', () => {
     expect(sanitizeQuestion({ ...valida, correctIndex: Number.NaN })).toBeNull()
   })
 
-  it('rechaza la pregunta si el índice apuntaba a una opción que se descartó', () => {
-    // El índice 2 era válido en el array original, pero esa opción era `null` y
-    // se filtró. Aceptarla marcaría como correcta la opción "b" por error.
-    const conHueco = { ...valida, options: ['a', 'b', null], correctIndex: 2 }
-
-    expect(sanitizeQuestion(conHueco)).toBeNull()
-  })
-
-  it('descarta las opciones no textuales y renumera el rango', () => {
-    // Al filtrar `null` quedan 2 opciones válidas, así que correctIndex 1 pasa
-    // a ser válido porque ahora realmente existe en la posición 1.
-    const conHueco = { ...valida, options: ['a', null, 'b'], correctIndex: 1 }
+  it('descarta las opciones no textuales y recalcula el índice correcto', () => {
+    // Al filtrar `null` quedan 2 opciones válidas, pero la correcta era "b", que
+    // estaba en la posición 2 del array original. Aceptarla sin más apuntaría a
+    // "b" por casualidad y no por diseño: el índice se recalcula a la posición
+    // que realmente ocupa la opción superviviente.
+    const conHueco = { ...valida, options: ['a', null, 'b'], correctIndex: 2 }
     const resultado = sanitizeQuestion(conHueco)
 
     expect(resultado?.options).toEqual(['a', 'b'])
     expect(resultado?.correctIndex).toBe(1)
+    expect(resultado?.options[resultado?.correctIndex ?? -1]).toBe('b')
+  })
+
+  it('rechaza si la opción descartada estaba antes de la correcta', () => {
+    // El caso peligroso: la correcta era "a" (índice 0) y al filtrar un `null`
+    // intermedio, "a" se desplazaría a la posición 0 pero el índice 1 acabaría
+    // señalando "b". Sin recalcular, la pregunta se aceptaría con la respuesta
+    // equivocada.
+    const conHueco = { ...valida, options: [null, 'a', 'b'], correctIndex: 1 }
+    const resultado = sanitizeQuestion(conHueco)
+
+    expect(resultado?.options).toEqual(['a', 'b'])
+    expect(resultado?.options[resultado?.correctIndex ?? -1]).toBe('a')
+  })
+
+  it('rechaza la pregunta si el índice apuntaba a una opción que se descartó', () => {
+    // El índice 1 era la opción inválida: no hay forma de saber cuál era la
+    // respuesta correcta, así que se descarta la pregunta entera.
+    const conHueco = { ...valida, options: ['a', null, 'b'], correctIndex: 1 }
+
+    expect(sanitizeQuestion(conHueco)).toBeNull()
   })
 
   it('asume dificultad facil si la dificultad es desconocida', () => {

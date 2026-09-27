@@ -144,7 +144,7 @@ describe('updateQuestion', () => {
   it('actualiza el texto conservando el id original', () => {
     const store = nuevoStore()
     const objetivo = store.questions[0]
-    if (objetivo === undefined) throw new Error('banco vac��o')
+    if (objetivo === undefined) throw new Error('banco vacío')
 
     const actualizada = store.updateQuestion(objetivo.id, {
       ...objetivo,

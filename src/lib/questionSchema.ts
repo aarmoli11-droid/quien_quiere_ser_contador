@@ -8,7 +8,7 @@ import { MAX_OPTIONS, MIN_OPTIONS } from '@/types'
  * importador de JSON y el formulario de edición apliquen exactamente las
  * mismas reglas: así no puede haber dos caminos que acepten datos distintos.
  *
- * Nota sobre seguridad: estas funciones **no**intentan "limpiar" el HTML de los
+ * Nota sobre seguridad: estas funciones **no** intentan "limpiar" el HTML de los
  * textos. No es su trabajo. La protección frente a XSS la da el renderizado: los
  * componentes interpolan con `{{ }}`, que Vue escapa, y el proyecto no usa
  * `v-html` con contenido editable. Eliminar aquí los caracteres `<` o `>`
@@ -56,24 +56,36 @@ export function sanitizeQuestion(raw: unknown): Question | null {
 
   // Se descartan las opciones que no sean texto (null, 3, {}) en lugar de
   // convertirla en "undefined", que se mostraría en pantalla tal cual.
-  const options = rawOptions
-    .map((option) => toTrimmedString(option, MAX_OPTION_TEXT))
-    .filter((option): option is string => option !== null)
+  //
+  // Se conserva la posición original de cada opción superviviente porque
+  // `correctIndex` viene referido a la lista original. Si se perdiera, al quitar
+  // una opción intermedia las siguientes se desplazarían y el índice acabaría
+  // señalando otra respuesta: la pregunta se daría por buena con la solución
+  // equivocada.
+  const opcionesConOrigen = rawOptions
+    .map((option, indice) => ({ texto: toTrimmedString(option, MAX_OPTION_TEXT), indice }))
+    .filter((opcion): opcion is { texto: string; indice: number } => opcion.texto !== null)
 
-  if (options.length < MIN_OPTIONS || options.length > MAX_OPTIONS) return null
+  if (opcionesConOrigen.length < MIN_OPTIONS || opcionesConOrigen.length > MAX_OPTIONS) return null
+
+  const options = opcionesConOrigen.map((opcion) => opcion.texto)
 
   const correctIndex = candidato['correctIndex']
-  // Solo se acepta un entero dentro del rango real de opciones ya filtradas.
-  // Si el índice apuntaba a una opción descartada, se rechaza la pregunta
-  // entera en vez de señalarla mal.
+  // Solo se acepta un entero dentro del rango real de la lista original.
   if (
     typeof correctIndex !== 'number' ||
     !Number.isInteger(correctIndex) ||
     correctIndex < 0 ||
-    correctIndex >= options.length
+    correctIndex >= rawOptions.length
   ) {
     return null
   }
+
+  // Si el índice apuntaba a una opción que se descartó, la pregunta se rechaza
+  // entera: es imposible saber cuál era la respuesta correcta y adivinarlo
+  // convertiría un dato corrupto en una pregunta con la respuesta equivocada.
+  const nuevaPosicion = opcionesConOrigen.findIndex((opcion) => opcion.indice === correctIndex)
+  if (nuevaPosicion === -1) return null
 
   const difficulty = candidato['difficulty']
   const category = toTrimmedString(candidato['category'], MAX_CATEGORY_TEXT)
@@ -83,7 +95,9 @@ export function sanitizeQuestion(raw: unknown): Question | null {
     id: toTrimmedString(candidato['id'], 60) ?? createQuestionId(),
     text,
     options,
-    correctIndex,
+    // Se guarda la posición ya recalculada, no la original del array de
+    // entrada: es la que vale dentro de `options`, que es lo que se mezclará.
+    correctIndex: nuevaPosicion,
     // Una dificultad desconocida se asume "facil" en lugar de rechazar la
     // pregunta: el anfitrión siempre tiene un modo válido que aplicar.
     difficulty: isDifficulty(difficulty) ? difficulty : 'facil',

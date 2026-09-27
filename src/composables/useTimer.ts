@@ -1,4 +1,5 @@
 import { computed, getCurrentScope, onScopeDispose, readonly, ref } from 'vue'
+import type { ComputedRef, Ref } from 'vue'
 
 /**
  * Temporizador de cuenta atrás de una pregunta.
@@ -8,24 +9,31 @@ import { computed, getCurrentScope, onScopeDispose, readonly, ref } from 'vue'
  * proyector: si la pestaña pierde el foco o el navegador ralentiza los
  * `setInterval` (cosa habitual en segundo plano, y muy probable con un
  * portátil conectado al proyector), contar ticks haría que el tiempo
- * corriera más despacio o más rápido de lo announced. Guardando solo la
+ * corriera más despacio o más rápido de lo anunciado. Guardando solo la
  * marca de fin y restando, el tiempo real es siempre el real.
  *
  * El temporizador se puede pausar porque el anfitrión necesita tiempo para
  * repetir la pregunta o para que los grupos discutan la respuesta.
  */
 
-/** Valor devuelto por el composable. */
+/**
+ * Valor devuelto por el composable.
+ *
+ * Los contadores se devuelven como referencias de solo lectura y no como
+ * números sueltos: es lo que un componente necesita para que la plantilla se
+ * repinte en cada tick. `readonly` impide que el componente los modifique por su
+ * cuenta, de modo que el reloj solo cambia por `start`, `pause` y `reset`.
+ */
 export interface Timer {
   /** Segundos que quedan, redondeados hacia arriba para mostrar 30 → 0. */
-  remaining: number
+  remaining: ComputedRef<number>
   /** Segundos totales de la pregunta. */
-  total: number
+  total: Readonly<Ref<number>>
   /** Progreso de 0 a 1; 1 significa que se agotó el tiempo. */
-  progress: number
-  isRunning: boolean
-  isPaused: boolean
-  isExpired: boolean
+  progress: ComputedRef<number>
+  isRunning: Readonly<Ref<boolean>>
+  isPaused: Readonly<Ref<boolean>>
+  isExpired: ComputedRef<boolean>
   start: (seconds?: number) => void
   pause: () => void
   resume: () => void
@@ -185,13 +193,15 @@ export function useTimer(onExpire?: () => void): Timer {
   // válido usar desde un test o desde código sin componente.
   if (getCurrentScope() !== undefined) onScopeDispose(clearTicker)
 
+  // `remaining`, `isExpired` y `progress` ya son computadas: no tienen setter,
+  // así que no necesitan `readonly`, y envolverlas perdería su tipo.
   return {
-    remaining: readonly(remaining),
+    remaining,
     total: readonly(total),
-    progress: readonly(progress),
+    progress,
     isRunning: readonly(isRunning),
     isPaused: readonly(isPaused),
-    isExpired: readonly(isExpired),
+    isExpired,
     start,
     pause,
     resume,

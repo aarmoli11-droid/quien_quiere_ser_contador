@@ -31,7 +31,7 @@ describe('readJson', () => {
   it('devuelve lo guardado cuando el JSON es válido', () => {
     localStorage.setItem(KEY, JSON.stringify({ a: 1, b: ['x'] }))
 
-    expect(readJson<{ a: number; b: string[] }>(KEY, null)).toEqual({ a: 1, b: ['x'] })
+    expect(readJson<{ a: number; b: string[] } | null>(KEY, null)).toEqual({ a: 1, b: ['x'] })
   })
 
   it('devuelve el valor por defecto si la clave no existe', () => {
@@ -115,7 +115,7 @@ describe('writeJson', () => {
 
   it('guarda y devuelve true', () => {
     expect(writeJson(KEY, { a: 1 })).toBe(true)
-    expect(readJson<{ a: number }>(KEY, null)).toEqual({ a: 1 })
+    expect(readJson<{ a: number } | null>(KEY, null)).toEqual({ a: 1 })
   })
 
   it('devuelve false si no puede serializar (circular)', () => {
