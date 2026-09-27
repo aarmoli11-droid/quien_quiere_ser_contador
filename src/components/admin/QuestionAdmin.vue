@@ -45,6 +45,22 @@ const categorias = computed(() => {
   return [...encontradas].sort()
 })
 
+/**
+ * Reparto del banco por dificultad.
+ *
+ * Se enseña porque el selector de dificultad de la configuración no se
+ * explica solo: en modo «Difícil» entran todas las preguntas, no solo las
+ * difíciles. Con el banco de ejemplo, que solo trae fáciles, elegir «Difícil»
+ * juega exactamente igual que «Fácil» y parece un fallo de la aplicación.
+ */
+const conteoDificultad = computed(() => ({
+  facil: bank.byDifficulty('facil').length,
+  dificil: bank.byDifficulty('dificil').length,
+}))
+
+/** `true` cuando no hay ninguna pregunta difícil que justifique el modo difícil. */
+const sinDificiles = computed(() => conteoDificultad.value.dificil === 0)
+
 /** Preguntas que pasan el filtro de texto, sobre el enunciado y las opciones. */
 const filtradas = computed(() => {
   const texto = filtro.value.trim().toLowerCase()
@@ -209,6 +225,25 @@ function restablecer(): void {
         Cerrar
       </button>
     </header>
+
+    <!--
+      Aviso de dificultad. Sin él, cambiar el selector de la configuración
+      parece no hacer nada mientras el banco no tenga preguntas difíciles, y lo
+      razonable es pensar que la aplicación está rota.
+    -->
+    <div class="flex flex-col gap-1">
+      <p class="text-sm text-white/70">
+        {{ conteoDificultad.facil }}
+        {{ conteoDificultad.facil === 1 ? 'pregunta fácil' : 'preguntas fáciles' }} ·
+        {{ conteoDificultad.dificil }}
+        {{ conteoDificultad.dificil === 1 ? 'pregunta difícil' : 'preguntas difíciles' }}
+      </p>
+      <p v-if="sinDificiles" class="text-sm text-amber-bright">
+        No hay preguntas difíciles en el banco. El modo «Difícil» usa todas las preguntas, así que
+        ahora mismo se juega lo mismo que en «Fácil». Añade alguna difícil para que la diferencia se
+        note.
+      </p>
+    </div>
 
     <div class="grid min-h-0 flex-1 gap-5 lg:grid-cols-[1fr_22rem]">
       <!-- ============================================ lista -->

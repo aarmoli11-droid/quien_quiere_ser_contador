@@ -40,6 +40,19 @@ const resumenBanco = computed(() => {
   return `${jugables} pregunta${jugables === 1 ? '' : 's'} jugable${jugables === 1 ? '' : 's'} de ${total}.`
 })
 
+/**
+ * Aviso del selector de dificultad.
+ *
+ * El modo «Difícil» usa todas las preguntas, no solo las difíciles. Si el banco
+ * no tiene ninguna, elegirlo juega igual que «Fácil» y parece que el selector
+ * está roto, así que se dice explícitamente en lugar de dejarlo deducir.
+ */
+const avisoDificultad = computed(() => {
+  if (bank.questions.length === 0) return null
+  if (bank.byDifficulty('dificil').length > 0) return null
+  return '0 preguntas difíciles en el banco: el modo «Difícil» juega lo mismo que «Fácil» hasta que añadas alguna.'
+})
+
 /** Añade el grupo del formulario y deja el campo limpio para el siguiente. */
 function añadirGrupo(): void {
   const creado = game.addGroup(nuevoNombre.value)
@@ -143,6 +156,10 @@ function empezar(): void {
                 <option v-for="d in DIFICULTADES" :key="d.value" :value="d.value">{{ d.texto }}</option>
               </select>
             </label>
+
+            <p v-if="avisoDificultad" class="-mt-1 text-xs text-amber-bright">
+              {{ avisoDificultad }}
+            </p>
 
             <label class="flex items-center justify-between gap-4 text-sm">
               <span>Número de preguntas</span>

@@ -85,6 +85,30 @@ describe('QuestionAdmin', () => {
       expect(wrapper.text()).toContain('Difícil')
     })
 
+    it('cuenta las preguntas de cada dificultad', () => {
+      const wrapper = montar()
+
+      expect(wrapper.text()).toContain('1 pregunta fácil')
+      expect(wrapper.text()).toContain('1 pregunta difícil')
+      // Con una difícil en el banco no hay nada que avisar.
+      expect(wrapper.text()).not.toContain('No hay preguntas difíciles')
+    })
+
+    it('avisa de que no hay preguntas difíciles', () => {
+      // El banco de ejemplo solo trae fáciles, así que elegir «Difícil» en la
+      // configuración juega igual que «Fácil». Sin este aviso parecía un fallo.
+      const wrapper = montar([{ ...BANCO[0] }])
+
+      expect(wrapper.text()).toContain('0 preguntas difíciles')
+      expect(wrapper.text()).toContain('juega lo mismo que en «Fácil»')
+    })
+
+    it('usa el singular con una sola pregunta difícil', () => {
+      const wrapper = montar([{ ...BANCO[0] }, { ...BANCO[1] }])
+
+      expect(wrapper.text()).toContain('1 pregunta fácil · 1 pregunta difícil')
+    })
+
     it('avisa cuando el banco está vacío', () => {
       const wrapper = montar([])
 

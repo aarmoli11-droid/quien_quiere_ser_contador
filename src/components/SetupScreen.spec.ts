@@ -136,6 +136,30 @@ describe('SetupScreen', () => {
     expect(wrapper.text()).toContain('10 preguntas jugables de 10')
   })
 
+  it('avisa de que el banco no tiene preguntas difíciles', () => {
+    // El banco de prueba solo tiene fáciles. Sin este aviso, cambiar el
+    // selector a «Difícil» parece no hacer nada.
+    preparar(2)
+    const wrapper = montar()
+
+    expect(wrapper.text()).toContain('0 preguntas difíciles en el banco')
+    expect(wrapper.text()).toContain('juega lo mismo que «Fácil»')
+  })
+
+  it('no avisa de la dificultad cuando el banco tiene preguntas difíciles', () => {
+    setActivePinia(createPinia())
+    useQuestionBankStore().importBank([
+      ...BANCO,
+      { id: 'q-dificil', text: 'Difícil', options: ['a', 'b', 'c'], correctIndex: 0, difficulty: 'dificil' },
+    ])
+    const game = useGameStore()
+    game.addGroup('A')
+    game.addGroup('B')
+    const wrapper = montar()
+
+    expect(wrapper.text()).not.toContain('0 preguntas difíciles')
+  })
+
   it('cambia los ajustes de la partida desde los campos', async () => {
     const game = preparar(2)
     const wrapper = montar()
