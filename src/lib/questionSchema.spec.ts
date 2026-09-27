@@ -5,6 +5,7 @@ import type { Question } from '@/types'
 import { MAX_CATEGORY_TEXT, MAX_OPTION_TEXT, MAX_QUESTION_TEXT } from './questionSchema'
 import {
   createQuestionId,
+  isQuestionBankShaped,
   parseQuestionBank,
   sanitizeQuestion,
   serializeQuestionBank,
@@ -205,6 +206,26 @@ describe('parseQuestionBank', () => {
     for (const q of banco) {
       expect(sanitizeQuestion(q)).not.toBeNull()
     }
+  })
+})
+
+describe('isQuestionBankShaped', () => {
+  it('reconoce un array plano y un objeto con questions', () => {
+    expect(isQuestionBankShaped([])).toBe(true)
+    expect(isQuestionBankShaped([valida])).toBe(true)
+    expect(isQuestionBankShaped({ version: 1, questions: [] })).toBe(true)
+  })
+
+  it('rechaza formas que no son un banco', () => {
+    // Es la comprobación que permite respetar un banco vacío a propósito sin
+    // confundirlo con un archivo corrupto.
+    expect(isQuestionBankShaped(null)).toBe(false)
+    expect(isQuestionBankShaped(undefined)).toBe(false)
+    expect(isQuestionBankShaped('texto')).toBe(false)
+    expect(isQuestionBankShaped(42)).toBe(false)
+    expect(isQuestionBankShaped({})).toBe(false)
+    expect(isQuestionBankShaped({ questions: 'no-array' })).toBe(false)
+    expect(isQuestionBankShaped({ preguntas: [] })).toBe(false)
   })
 })
 

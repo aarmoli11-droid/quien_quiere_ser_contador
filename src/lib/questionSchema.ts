@@ -143,6 +143,22 @@ export function parseQuestionBank(raw: unknown): Question[] {
 }
 
 /**
+ * Indica si un valor tiene la *forma* de un banco de preguntas, sin importar si
+ * su contenido es válido.
+ *
+ * Hace falta para distinguir dos situaciones que `parseQuestionBank` mezcla en
+ * el mismo resultado vacío: un banco que el anfitrión vació a propósito (que
+ * hay que respetar) y un archivo corrupto o de otra aplicación (que hay que
+ * sustituir por la semilla). Sin esta comprobación, borrar todas las
+ * preguntas sería imposible: el juego las repondría en cada arranque.
+ */
+export function isQuestionBankShaped(raw: unknown): boolean {
+  if (Array.isArray(raw)) return true
+  if (raw === null || typeof raw !== 'object') return false
+  return Array.isArray((raw as Record<string, unknown>)['questions'])
+}
+
+/**
  * Construye el objeto que se descarga al exportar el banco.
  *
  * Se incluye un número de versión para que una exportación antigua siga
