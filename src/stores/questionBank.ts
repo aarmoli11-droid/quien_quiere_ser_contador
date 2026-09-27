@@ -136,19 +136,49 @@ export const useQuestionBankStore = defineStore('questionBank', () => {
   /**
    * Reemplaza todo el banco (importación de un JSON).
    *
+   * Acepta el **texto** del archivo, un array o el objeto `{ questions: [...] }`.
+   * El texto es el caso normal: un `<input type="file">` entrega el contenido
+   * como cadena, y no parsearlo aquí devolvía siempre un banco vacío sin llegar
+   * a explicar por qué.
+   *
    * Devuelve cuántas preguntas se aceptaron y cuántas se descartaron, para que
-   * la interfaz pueda avisar con precisión en vez de decir "importado".
+   * la interfaz pueda avisar con precisión en vez de decir "importado". Si el
+   * archivo no se puede interpretar, `error` explica el motivo: sin él, un
+   * JSON corrupto y un banco vacío válido se confundirían en el mismo aviso de
+   * "0 importadas".
    */
-  function importBank(raw: unknown): { imported: number; rejected: number } {
-    const total = Array.isArray(raw)
-      ? raw.length
-      : raw !== null && typeof raw === 'object'
-        ? ((raw as Record<string, unknown>)['questions'] as unknown[] | undefined)?.length ?? 0
+  function importBank(raw: unknown): { imported: number; rejected: number; error?: string } {
+    let contenido: unknown = raw
+
+    if (typeof raw === 'string') {
+      try {
+        contenido = JSON.parse(raw)
+      } catch {
+        // Un archivo corrupto o que no es JSON. Se vacía el banco para no dejar
+        // a medias una importación a medias, y se informa del motivo.
+        questions.value = []
+        persist()
+        return { imported: 0, rejected: 0, error: 'El archivo no es un JSON válido.' }
+      }
+    }
+
+    const total = Array.isArray(contenido)
+      ? contenido.length
+      : contenido !== null && typeof contenido === 'object'
+        ? ((contenido as Record<string, unknown>)['questions'] as unknown[] | undefined)?.length ?? 0
         : 0
 
-    const parseada = parseQuestionBank(raw)
+    const parseada = parseQuestionBank(contenido)
     questions.value = parseada
     persist()
+
+    if (!isQuestionBankShaped(contenido)) {
+      return {
+        imported: parseada.length,
+        rejected: Math.max(0, total - parseada.length),
+        error: 'El archivo no contiene un banco de preguntas.',
+      }
+    }
 
     return { imported: parseada.length, rejected: Math.max(0, total - parseada.length) }
   }

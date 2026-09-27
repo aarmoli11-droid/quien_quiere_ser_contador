@@ -260,13 +260,33 @@ describe('importBank', () => {
     expect(resultado.imported).toBe(1)
   })
 
+  it('acepta el texto del archivo, tal como lo entrega un input de fichero', () => {
+    // El `<input type="file">` entrega el contenido como cadena. Si el store no
+    // lo interpreta, la importación se queda siempre en cero preguntas.
+    const store = nuevoStore()
+    const resultado = store.importBank(JSON.stringify({ version: 1, questions: [valida, valida] }))
+
+    expect(resultado).toEqual({ imported: 2, rejected: 0 })
+    expect(store.count).toBe(2)
+  })
+
   it('deja el banco vacío ante un archivo totalmente inválido', () => {
     // Es preferible un banco vacío y visible que conservar la semilla y dar la
     // impresión de que la importación funcionó.
     const store = nuevoStore()
     const resultado = store.importBank('esto no es un banco')
 
-    expect(resultado).toEqual({ imported: 0, rejected: 0 })
+    expect(resultado.imported).toBe(0)
+    expect(resultado.rejected).toBe(0)
+    expect(resultado.error).toBe('El archivo no es un JSON válido.')
+    expect(store.count).toBe(0)
+  })
+
+  it('avisa cuando el JSON es válido pero no es un banco de preguntas', () => {
+    const store = nuevoStore()
+    const resultado = store.importBank(JSON.stringify({ hola: 'que tal' }))
+
+    expect(resultado.error).toBe('El archivo no contiene un banco de preguntas.')
     expect(store.count).toBe(0)
   })
 
