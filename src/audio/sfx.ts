@@ -62,12 +62,14 @@ export function isSuspended(): boolean {
  * @param duracion    Duración total en segundos.
  * @param tipoOnda    Forma de onda: 'sine' es suave, 'square' es más metálica.
  * @param volumen     Pico de ganancia, entre 0 y 1.
+ * @param cuando      Instante del contexto en el que empieza. Por defecto, ya.
  */
 function playNote(
   frecuencia: number,
   duracion: number,
   tipoOnda: OscillatorType,
   volumen: number,
+  cuando?: number,
 ): boolean {
   const ctx = getContext()
   if (ctx === null) return false
@@ -77,7 +79,7 @@ function playNote(
     // si falla el sonido simplemente no suena.
     if (ctx.state === 'suspended') void ctx.resume().catch(() => {})
 
-    const ahora = ctx.currentTime
+    const inicio = cuando ?? ctx.currentTime
     const oscilador = ctx.createOscillator()
     const ganancia = ctx.createGain()
 
@@ -86,15 +88,15 @@ function playNote(
 
     // Envolvente: ataque corto para que no chasquee, caída exponencial hasta
     // silencio, y silencio antes de cortar para no producir un clic final.
-    ganancia.gain.setValueAtTime(0, ahora)
-    ganancia.gain.linearRampToValueAtTime(volumen, ahora + 0.01)
-    ganancia.gain.exponentialRampToValueAtTime(0.0001, ahora + duracion)
-    ganancia.gain.setValueAtTime(0, ahora + duracion)
+    ganancia.gain.setValueAtTime(0, inicio)
+    ganancia.gain.linearRampToValueAtTime(volumen, inicio + 0.01)
+    ganancia.gain.exponentialRampToValueAtTime(0.0001, inicio + duracion)
+    ganancia.gain.setValueAtTime(0, inicio + duracion)
 
     oscilador.connect(ganancia)
     ganancia.connect(ctx.destination)
-    oscilador.start(ahora)
-    oscilador.stop(ahora + duracion + 0.02)
+    oscilador.start(inicio)
+    oscilador.stop(inicio + duracion + 0.02)
 
     return true
   } catch {
@@ -146,6 +148,44 @@ export function playTimeUp(): void {
  */
 export function playAnswerRegistered(): void {
   playNote(523.25, 0.09, 'triangle', 0.12)
+}
+
+/**
+ * Fanfarria de victoria.
+ *
+ * Suena al terminar la partida, mientras el confeti cae. Arpegio mayor ascendente
+ * con una quinta final: es el gesto musical que espera cualquiera que haya visto
+ * un concurso de televisión, así que comunica la celebración sin necesidad de
+ * ninguna palabra.
+ *
+ * Las notas no se encadenan con `setTimeout` sino con el reloj del contexto: los
+ * temporizadores se ralentizan cuando la pestaña pierde el foco (justo lo que
+ * pasa en un portátil con el proyector encendido) y entonces los tonos se
+ * solaparían y sonarían desordenados. Con `ctx.currentTime` el arpegio dura lo
+ * mismo aunque el navegador pause los temporizadores.
+ */
+export function playVictory(): void {
+  const ctx = getContext()
+  if (ctx === null) return
+
+  if (ctx.state === 'suspended') void ctx.resume().catch(() => {})
+
+  // Do, mi, sol, do y mi: el arpegio completo de do mayor. La última nota es la
+  // más larga porque es la que cierra la fanfarria.
+  const notas: ReadonlyArray<{ frecuencia: number; duracion: number }> = [
+    { frecuencia: 523.25, duracion: 0.14 }, // do
+    { frecuencia: 659.25, duracion: 0.14 }, // mi
+    { frecuencia: 783.99, duracion: 0.14 }, // sol
+    { frecuencia: 1046.5, duracion: 0.2 }, // do, una octava arriba
+    { frecuencia: 1318.51, duracion: 0.45 }, // mi, el remate
+  ]
+
+  const inicio = ctx.currentTime
+  let acumulado = 0
+  for (const nota of notas) {
+    playNote(nota.frecuencia, nota.duracion, 'triangle', 0.16, inicio + acumulado)
+    acumulado += nota.duracion * 0.72
+  }
 }
 
 /**

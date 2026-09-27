@@ -1,9 +1,13 @@
-﻿import { mount } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useGameStore } from '@/stores/game'
 import { useQuestionBankStore } from '@/stores/questionBank'
+// `canvas-confetti` está sustituido globalmente en `test/setup`: jsdom no dibuja
+// y la librería anima con `requestAnimationFrame`, así que sus errores aparecerían
+// sueltos, después del test que la lanzó. Aquí solo se lee lo que registró.
+import { confettiCalls } from '@/test/setup'
 import type { Question } from '@/types'
 import ResultsScreen from './ResultsScreen.vue'
 
@@ -166,5 +170,79 @@ describe('ResultsScreen', () => {
     const wrapper = mount(ResultsScreen)
 
     expect(wrapper.findAll('tbody tr')).toHaveLength(20)
+  })
+})
+
+describe('celebración del ganador', () => {
+  // Falsos temporizadores para todo el bloque: la celebración lanza ráfagas
+  // pendientes a 350 y 700 ms. Con temporizadores reales seguirían disparándose
+  // después de terminar el test, y ya no habría ningún `try` que recogiera su
+  // excepción, que se reportaría como error no controlado.
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('lanza confeti y fanfarria cuando hay ganador único', () => {
+    partidaConRespuestas([0])
+    mount(ResultsScreen)
+
+    // Es el momento que lleva media hora de tensión: el confeti y la fanfarria
+    // tienen que salir nada más montar la pantalla de resultados.
+    expect(confettiCalls).toHaveLength(1)
+    expect(confettiCalls[0]).toMatchObject({ colors: expect.arrayContaining(['#f7c948']) })
+  })
+
+  it('tres ráfagas: la primera al empezar y dos de refuerzo', () => {
+    partidaConRespuestas([0])
+    mount(ResultsScreen)
+
+    // Una sola ráfaga cae en bloque y dura menos que el aplauso; separadas
+    // cubren los tres segundos que la sala está mirando la pantalla.
+    vi.advanceTimersByTime(1000)
+    expect(confettiCalls).toHaveLength(3)
+  })
+
+  it('no celebra nada si la partida sigue empatada', () => {
+    // Celebrar un empate sería mentir sobre quién ha ganado: se espera al
+    // desempate.
+    partidaConRespuestas([0, 1])
+    mount(ResultsScreen)
+    vi.advanceTimersByTime(1000)
+
+    expect(confettiCalls).toHaveLength(0)
+  })
+
+  it('celebra una sola vez aunque la tabla cambie', async () => {
+    const game = partidaConRespuestas([0])
+    const wrapper = mount(ResultsScreen)
+    vi.advanceTimersByTime(1000)
+    expect(confettiCalls).toHaveLength(3)
+
+    // Cualquier cambio en la tabla vuelve a recalcular el ganador. Sin la marca
+    // de "ya celebrado", la pantalla repetiría la fanfarria y el confeti.
+    await wrapper.vm.$forceUpdate()
+    game.startTiebreak()
+    await wrapper.vm.$forceUpdate()
+    vi.advanceTimersByTime(1000)
+
+    expect(confettiCalls).toHaveLength(3)
+  })
+
+  it('cancela las ráfagas si el anfitrión sale antes de que caigan', () => {
+    partidaConRespuestas([0])
+    const wrapper = mount(ResultsScreen)
+    // Solo ha salido la primera ráfaga; las otras dos están pendientes.
+    expect(confettiCalls).toHaveLength(1)
+
+    wrapper.unmount()
+    vi.advanceTimersByTime(2000)
+
+    // Sin la limpieza, el confeti se seguiría dibujando en una pantalla que
+    // ya no existe.
+    expect(confettiCalls).toHaveLength(1)
   })
 })

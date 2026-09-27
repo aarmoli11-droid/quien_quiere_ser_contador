@@ -5,13 +5,30 @@
  * centrales del juego. En lugar de instalar un motor de audio falso en cada
  * test, se sustituyen por dobles mínimos que registran las llamadas; así los
  * tests pueden afirmar "sonó el sonido X" sin depender de un archivo real.
+ *
+ * `canvas-confetti` se sustituye por la misma razón y por una más práctica:
+ * dibuja en un `<canvas>` del `body` y anima con `requestAnimationFrame`, así que
+ * en jsdom falla dentro de su propio bucle de animación, que ya no depende del
+ * test que la lanzó. Esos errores aparecen como "no controlados" y pueden dar por
+ * buenos tests que en realidad no lo son.
  */
 import { afterEach, vi } from 'vitest'
+
+import type { ConfettiOptions } from 'canvas-confetti'
 
 import { resetAudioState } from '@/audio/soundBank'
 
 /** Registro de sonidos reproducidos, para poder inspeccionarlo en los tests. */
 export const playedSounds: string[] = []
+
+/** Opciones con las que se ha pedido confeti, para poder inspeccionarlas. */
+export const confettiCalls: ConfettiOptions[] = []
+
+vi.mock('canvas-confetti', () => ({
+  default: (opciones: ConfettiOptions) => {
+    confettiCalls.push(opciones)
+  },
+}))
 
 /** Instala un doble de `Audio` que registra `play`/`pause`/`stop`. */
 function installAudioStub() {
@@ -57,6 +74,7 @@ afterEach(() => {
   // siguientes, independientemente del orden en que se ejecuten.
   resetAudioState()
   playedSounds.length = 0
+  confettiCalls.length = 0
   vi.unstubAllGlobals()
   installAudioStub()
   // Algunos tests sustituyen `localStorage` por un doble que lanza; limpiarlo

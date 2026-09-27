@@ -5,9 +5,15 @@
  * Al terminar la partida muestra la clasificación final. Si hay empate en el
  * primer puesto ofrece la ronda de desempate; si el banco se ha agotado, avisa en
  * lugar de repetir una pregunta ya respondida.
+ *
+ * Cuando hay ganador único se celebra con fanfarria y confeti. No es un adorno
+ * superfluo: es la parte del programa por la que se juega, y el momento que lleva
+ * media hora de tensión acumulada.
  */
-import { computed } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
+import confetti from 'canvas-confetti'
 
+import { playVictory } from '@/audio/sfx'
 import { groupDisplayName } from '@/lib/groupLabel'
 import { useGameStore } from '@/stores/game'
 
@@ -23,6 +29,79 @@ const ganador = computed(() => (game.needsTiebreak ? null : (game.leaders[0] ?? 
 const estadoDesempate = computed(() => {
   if (!game.needsTiebreak) return null
   return `Empate entre ${game.leaders.length} grupos. Se juega una pregunta de desempate.`
+})
+
+/**
+ * `true` cuando la celebración ya se ha lanzado para este final de partida.
+ *
+ * Sin esta marca, cualquier cambio en la tabla volvería a disparar el confeti y
+ * la fanfarria: la pantalla puede permanecer montada mientras la partida avanza
+ * al desempate, y entonces la celebración se repetiría.
+ */
+const celebrado = ref(false)
+
+/** Temporizadores de las ráfagas de confeti, para poder cancelarlos al salir. */
+let temporizadoresConfeti: ReturnType<typeof setTimeout>[] = []
+
+/**
+ * Lanza la celebración.
+ *
+ * Son tres ráfagas y no una sola: una ráfaga única cae en bloque y dura menos que
+ * el aplauso que la acompaña, mientras que tres separadas cubren los tres
+ * segundos que la sala está mirando la pantalla.
+ *
+ * El confeti va protegido: la librería necesita un `<canvas>` y dibuja en el
+ * `body`, así que puede fallar por el navegador, no por un error del juego. Si
+ * falla, se pierde el adorno y la clasificación se sigue viendo igual.
+ */
+function celebrar(): void {
+  playVictory()
+
+  // La paleta del programa: el oro de la pantalla y el azul del escenario.
+  const colores = ['#f7c948', '#f59e0b', '#ffffff', '#4553d6']
+  try {
+    confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 }, colors: colores, zIndex: 60 })
+    temporizadoresConfeti.push(
+      setTimeout(() => {
+        confetti({ particleCount: 60, spread: 100, origin: { y: 0.4 }, colors: colores, zIndex: 60 })
+      }, 350),
+    )
+    temporizadoresConfeti.push(
+      setTimeout(() => {
+        confetti({ particleCount: 40, spread: 120, origin: { y: 0.5 }, colors: colores, zIndex: 60 })
+      }, 700),
+    )
+  } catch {
+    // Sin confeti, pero con fanfarria y con la tabla de resultados.
+  }
+}
+
+/**
+ * Dispara la celebración en cuanto hay un ganador único.
+ *
+ * Va en un `watch` y no solo en el montaje porque el ganador puede llegar un
+ * instante después de montar la pantalla, y porque así se cubre también el
+ * remontaje que ocurre al pasar de empate a ganador tras el desempate.
+ */
+watch(
+  ganador,
+  (nuevo) => {
+    if (nuevo === null || celebrado.value) return
+    celebrado.value = true
+    celebrar()
+  },
+  { immediate: true },
+)
+
+/**
+ * Cancela las ráfagas pendientes si el anfitrión sale antes de que caigan.
+ *
+ * Sin esto, volver a la configuración en mitad de la animación dejaría el confeti
+ * dibujándose en una pantalla que ya no es la de resultados.
+ */
+onUnmounted(() => {
+  for (const temporizador of temporizadoresConfeti) clearTimeout(temporizador)
+  temporizadoresConfeti = []
 })
 </script>
 

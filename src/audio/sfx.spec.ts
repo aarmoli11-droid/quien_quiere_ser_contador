@@ -6,6 +6,7 @@ import {
   playAnswerRegistered,
   playOptionReveal,
   playTimeUp,
+  playVictory,
   unlockAudio,
 } from './sfx'
 
@@ -20,6 +21,8 @@ interface FakeContext {
   // `frequency` es un AudioParam en la API real, por eso se guarda el objeto
   // con su `value` y no un número suelto.
   oscillators: { type: OscillatorType; frequency: { value: number } }[]
+  /** Instante del reloj de audio en el que se programó cada nota. */
+  inicios: number[]
   closed: boolean
   createOscillator: () => unknown
   createGain: () => unknown
@@ -33,6 +36,7 @@ function installFakeAudioContext(state: AudioContextState = 'running'): FakeCont
     currentTime: 0,
     destination: {},
     oscillators: [],
+    inicios: [],
     closed: false,
     createOscillator: () => {
       const node = {
@@ -41,7 +45,11 @@ function installFakeAudioContext(state: AudioContextState = 'running'): FakeCont
         // Gains y osciladores se conectan entre sí; el doble solo necesita
         // aceptar las llamadas y no propagar.
         connect: () => node,
-        start: () => {},
+        // El instante de arranque es lo que permite comprobar que la fanfarria
+        // se encadena sobre el reloj del audio y no con temporizadores.
+        start: (cuando?: number) => {
+          ctx.inicios.push(cuando ?? 0)
+        },
         stop: () => {},
       }
       ctx.oscillators.push(node)
@@ -133,6 +141,69 @@ describe('sonidos sintetizados', () => {
     playOptionReveal(1)
 
     expect(isSuspended()).toBe(false)
+  })
+})
+
+describe('fanfarria de victoria', () => {
+  afterEach(() => {
+    closeAudio()
+    vi.unstubAllGlobals()
+  })
+
+  it('suena un arpegio ascendente de cinco notas', () => {
+    const ctx = installFakeAudioContext()
+
+    playVictory()
+
+    expect(ctx.oscillators).toHaveLength(5)
+    const frecuencias = ctx.oscillators.map((o) => o.frequency.value)
+    // Cada nota es más aguda que la anterior: es lo que la hace sonar a
+    // celebración y no a cualquier otra cosa.
+    for (let i = 1; i < frecuencias.length; i += 1) {
+      expect(frecuencias[i]).toBeGreaterThan(frecuencias[i - 1] ?? 0)
+    }
+  })
+
+  it('encadena las notas sobre el reloj de audio, no con temporizadores', () => {
+    // Los `setTimeout` se ralentizan cuando la pestaña pierde el foco, que es
+    // justo lo que pasa con un portátil proyectando. Con el reloj del contexto
+    // el arpegio se mantiene en su sitio.
+    const ctx = installFakeAudioContext()
+
+    playVictory()
+
+    expect(ctx.inicios).toHaveLength(5)
+    expect(ctx.inicios[0]).toBe(0)
+    for (let i = 1; i < ctx.inicios.length; i += 1) {
+      expect(ctx.inicios[i]).toBeGreaterThan(ctx.inicios[i - 1] ?? 0)
+    }
+  })
+
+  it('no usa temporizadores para la fanfarria', () => {
+    // Comprobación explícita del motivo: si volviera a encadenarse con
+    // `setTimeout`, las notas se solaparían al perder el foco la pestaña.
+    installFakeAudioContext()
+    const temporizador = vi.spyOn(globalThis, 'setTimeout')
+
+    playVictory()
+
+    expect(temporizador).not.toHaveBeenCalled()
+    temporizador.mockRestore()
+  })
+
+  it('no lanza si no hay Web Audio', () => {
+    vi.stubGlobal('AudioContext', undefined)
+
+    expect(() => playVictory()).not.toThrow()
+  })
+
+  it('reanuda el contexto suspendido al celebrar', async () => {
+    const ctx = installFakeAudioContext('suspended')
+
+    playVictory()
+    await Promise.resolve()
+
+    expect(ctx.state).toBe('running')
   })
 })
 
