@@ -241,7 +241,7 @@ function siguiente(): void {
 
       <!-- Panel de grupos. -->
       <GroupPanel
-        class="min-h-0 overflow-y-auto"
+        class="scroll-area min-h-0 overflow-y-auto"
         :groups="game.contenders"
         :selected-id="game.selectedGroupId"
         :answers="game.roundAnswers"

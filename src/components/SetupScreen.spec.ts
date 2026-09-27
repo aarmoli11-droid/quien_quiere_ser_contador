@@ -107,6 +107,26 @@ describe('SetupScreen', () => {
     expect(game.groups).toHaveLength(1)
   })
 
+  it('mete la lista de grupos en su propio desplazamiento con barra visible', () => {
+    // Con 20 grupos la lista no cabe en 1080p. Si creciera, empujaría el botón
+    // de iniciar fuera de la pantalla y habría que desplazarse para encontrarlo.
+    preparar(0)
+    const game = useGameStore()
+    for (let i = 0; i < 20; i += 1) game.addGroup(`Equipo ${i + 1}`)
+    const wrapper = montar()
+
+    const lista = wrapper.find('ul')
+    expect(lista.classes()).toContain('overflow-y-auto')
+    expect(lista.classes()).toContain('scroll-area')
+    // La pantalla completa también lleva la clase: la barra se ve en cualquier
+    // zona desplazable, no solo en la lista.
+    expect(wrapper.find('section').classes()).toContain('scroll-area')
+    // Con el alto disponible, la lista se queda dentro de su caja en vez de
+    // alargar la página: es `flex-1 min-h-0`, no una altura fija en píxeles.
+    expect(lista.classes()).toContain('flex-1')
+    expect(lista.classes()).toContain('min-h-0')
+  })
+
   it('no permite añadir más de MAX_GRUPPOS', () => {
     preparar(0)
     const game = useGameStore()

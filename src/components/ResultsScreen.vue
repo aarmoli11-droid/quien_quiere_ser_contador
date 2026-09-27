@@ -27,7 +27,9 @@ const estadoDesempate = computed(() => {
 </script>
 
 <template>
-  <section class="relative z-10 mx-auto flex h-full w-full max-w-4xl flex-col gap-6 overflow-y-auto px-6 py-8">
+  <section
+    class="scroll-area relative z-10 mx-auto flex h-full w-full max-w-4xl flex-col gap-6 overflow-y-auto px-6 py-8"
+  >
     <header class="text-center">
       <h1 class="text-4xl font-extrabold text-gold">Fin de la partida</h1>
       <p v-if="ganador" class="mt-2 text-2xl font-bold">

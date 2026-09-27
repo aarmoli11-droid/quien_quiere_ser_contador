@@ -72,23 +72,33 @@ function empezar(): void {
 </script>
 
 <template>
-  <section class="relative z-10 mx-auto flex h-full w-full max-w-6xl flex-col gap-6 overflow-y-auto px-6 py-8">
+  <!--
+    Densidad ajustada para 1080p: la sala llena ya tiene otras cosas en la
+    pantalla, así que la configuración cabe en un alto de monitor sin obligar a
+    desplazamiento. Todo lo que se recorta son márgenes, no contenido: los
+    ajustes siguen siendo los seis de siempre y la lista de grupos es la que
+    lleva su propio desplazamiento, con barra visible, para que con veinte
+    grupos la pantalla no crezca hacia abajo.
+  -->
+  <section
+    class="relative z-10 mx-auto flex h-full w-full max-w-6xl flex-col gap-4 overflow-y-auto px-5 py-5 scroll-area"
+  >
     <header class="text-center">
-      <h1 class="text-4xl font-extrabold tracking-wide text-gold drop-shadow-[0_2px_10px_rgb(0_0_0/60%)]">
+      <h1 class="text-3xl font-extrabold tracking-wide text-gold drop-shadow-[0_2px_10px_rgb(0_0_0/60%)]">
         QUIÉN QUIERE SER CONTADOR
       </h1>
-      <p class="mt-2 text-sm text-white/70">Configura los grupos y la partida antes de empezar.</p>
+      <p class="mt-1 text-sm text-white/70">Configura los grupos y la partida antes de empezar.</p>
     </header>
 
-    <div class="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+    <div class="grid min-h-0 flex-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
       <!-- ============================================ grupos -->
-      <div class="rounded-2xl border border-white/15 bg-ink/70 p-5 shadow-2xl backdrop-blur-sm">
-        <div class="mb-4 flex items-baseline justify-between">
-          <h2 class="text-xl font-bold text-gold">Grupos</h2>
+      <div class="flex min-h-0 flex-col rounded-2xl border border-white/15 bg-ink/70 p-4 shadow-2xl backdrop-blur-sm">
+        <div class="mb-3 flex items-baseline justify-between">
+          <h2 class="text-lg font-bold text-gold">Grupos</h2>
           <span class="text-sm text-white/60">{{ game.groups.length }} / {{ MAX_GROUPS }}</span>
         </div>
 
-        <form class="mb-4 flex flex-wrap gap-2" @submit.prevent="añadirGrupo">
+        <form class="mb-3 flex flex-wrap gap-2" @submit.prevent="añadirGrupo">
           <!--
             Solo se pide el nombre. La etiqueta (A, B, C...) la pone el store
             según el orden de alta y se renumera al quitar alguien, así que
@@ -100,37 +110,48 @@ function empezar(): void {
             type="text"
             maxlength="40"
             placeholder="Nombre del grupo (opcional)"
-            class="min-w-40 flex-1 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white placeholder:text-white/40 focus:border-gold focus:outline-none"
+            class="min-w-40 flex-1 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-sm text-white placeholder:text-white/40 focus:border-gold focus:outline-none"
             aria-label="Nombre del grupo"
           />
           <button
             type="submit"
-            class="rounded-lg bg-gold px-4 py-2 font-bold text-ink transition hover:bg-amber-bright disabled:cursor-not-allowed disabled:opacity-40"
+            class="rounded-lg bg-gold px-4 py-1.5 text-sm font-bold text-ink transition hover:bg-amber-bright disabled:cursor-not-allowed disabled:opacity-40"
             :disabled="game.groups.length >= MAX_GROUPS"
           >
             Añadir
           </button>
         </form>
 
-        <p v-if="game.groups.length === 0" class="py-6 text-center text-white/50">
+        <p v-if="game.groups.length === 0" class="py-4 text-center text-sm text-white/50">
           Todavía no hay grupos. Añade al menos dos para competir.
         </p>
 
-        <ul v-else class="flex flex-col gap-2">
+        <!--
+          La lista es la única parte que puede desbordar (hasta 20 grupos), así
+          que se desplaza ella sola en lugar de empujar el resto de la pantalla:
+          `min-h-0` + `flex-1` la dejan ocupar justo el hueco que sobra y
+          desplazarse cuando no cabe. El alto sale del viewport, no de un
+          número fijo, así que el margen se mantiene igual en un portátil
+          pequeño y en un proyector de 1080p.
+        -->
+        <ul
+          v-else
+          class="scroll-area flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-1.5"
+        >
           <li
             v-for="grupo in game.groups"
             :key="grupo.id"
-            class="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2"
+            class="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5"
           >
             <!--
               Nombre plano, con la letra dentro del texto ("Grupo A — aarón").
               El círculo con la letra se quitó porque repetía la misma
               información en mayúsculas y quitaba sitio a la lista.
             -->
-            <span class="flex-1 truncate font-semibold">{{ groupDisplayName(grupo) }}</span>
+            <span class="flex-1 truncate text-sm font-semibold">{{ groupDisplayName(grupo) }}</span>
             <button
               type="button"
-              class="rounded-md border border-white/20 px-2 py-1 text-xs text-white/70 transition hover:border-miss hover:text-white"
+              class="rounded-md border border-white/20 px-2 py-0.5 text-xs text-white/70 transition hover:border-miss hover:text-white"
               :aria-label="`Quitar ${grupo.name}`"
               @click="game.removeGroup(grupo.id)"
             >
@@ -141,11 +162,11 @@ function empezar(): void {
       </div>
 
       <!-- ============================================ ajustes -->
-      <div class="flex flex-col gap-6">
-        <div class="rounded-2xl border border-white/15 bg-ink/70 p-5 shadow-2xl backdrop-blur-sm">
-          <h2 class="mb-4 text-xl font-bold text-gold">Partida</h2>
+      <div class="flex min-h-0 flex-col gap-4">
+        <div class="rounded-2xl border border-white/15 bg-ink/70 p-4 shadow-2xl backdrop-blur-sm">
+          <h2 class="mb-3 text-lg font-bold text-gold">Partida</h2>
 
-          <div class="flex flex-col gap-3">
+          <div class="flex flex-col gap-2">
             <label class="flex items-center justify-between gap-4 text-sm">
               <span>Dificultad</span>
               <select
@@ -219,7 +240,7 @@ function empezar(): void {
             </label>
           </div>
 
-          <p class="mt-4 text-xs text-white/60">
+          <p class="mt-3 text-xs text-white/60">
             Escalera de puntos:
             <span class="font-semibold text-gold">{{ game.basePoints }}</span>,
             {{ game.basePoints + game.pointsStep }},
@@ -227,12 +248,12 @@ function empezar(): void {
           </p>
         </div>
 
-        <div class="rounded-2xl border border-white/15 bg-ink/70 p-5 shadow-2xl backdrop-blur-sm">
-          <h2 class="mb-2 text-lg font-bold text-gold">Banco de preguntas</h2>
-          <p class="mb-3 text-sm text-white/70">{{ resumenBanco }}</p>
+        <div class="rounded-2xl border border-white/15 bg-ink/70 p-4 shadow-2xl backdrop-blur-sm">
+          <h2 class="mb-1 text-base font-bold text-gold">Banco de preguntas</h2>
+          <p class="mb-2 text-sm text-white/70">{{ resumenBanco }}</p>
           <button
             type="button"
-            class="w-full rounded-lg border border-white/25 px-4 py-2 text-sm font-semibold transition hover:border-gold hover:text-gold"
+            class="w-full rounded-lg border border-white/25 px-4 py-1.5 text-sm font-semibold transition hover:border-gold hover:text-gold"
             @click="emit('open-admin')"
           >
             Gestionar preguntas
@@ -241,10 +262,10 @@ function empezar(): void {
       </div>
     </div>
 
-    <footer class="mt-auto flex flex-col items-center gap-2 pt-2">
+    <footer class="mt-auto flex flex-col items-center gap-1.5">
       <button
         type="button"
-        class="w-full max-w-md rounded-xl bg-gold px-6 py-4 text-lg font-extrabold text-ink shadow-lg transition hover:bg-amber-bright disabled:cursor-not-allowed disabled:opacity-40"
+        class="w-full max-w-md rounded-xl bg-gold px-6 py-3 text-lg font-extrabold text-ink shadow-lg transition hover:bg-amber-bright disabled:cursor-not-allowed disabled:opacity-40"
         :disabled="!game.canStart"
         @click="empezar"
       >

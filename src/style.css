@@ -64,6 +64,35 @@ body {
   cursor: default;
 }
 
+/*
+ * Zonas desplazables con barra visible.
+ *
+ * Con el fondo casi negro del escenario, la barra que dibuja el navegador por
+ * defecto es una franja gris sobre negro que pasa desapercibida: el anfitrión
+ * no ve que la lista de grupos sigue bajando y cree que la pantalla se ha
+ * terminado. Aquí la barra se pinta en oro, con la misma paleta del programa,
+ * y se ensancha un poco para que se vea desde el fondo de la sala.
+ */
+.scroll-area {
+  scrollbar-color: var(--color-gold) rgb(0 0 0 / 25%);
+  scrollbar-width: auto;
+}
+
+.scroll-area::-webkit-scrollbar {
+  width: 12px;
+}
+
+.scroll-area::-webkit-scrollbar-track {
+  background: rgb(0 0 0 / 25%);
+  border-radius: 9999px;
+}
+
+.scroll-area::-webkit-scrollbar-thumb {
+  background-color: var(--color-gold);
+  border: 3px solid rgb(0 0 0 / 25%);
+  border-radius: 9999px;
+}
+
 /* Estado de acierto y de fallo revelados durante el mostrar. */
 .option-correct {
   background-color: var(--color-hit);

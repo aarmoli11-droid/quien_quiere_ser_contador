@@ -263,7 +263,7 @@ function restablecer(): void {
           El banco está vacío. Añade la primera pregunta con el formulario.
         </p>
 
-        <ul v-else class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+        <ul v-else class="scroll-area flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1.5">
           <li
             v-for="pregunta in filtradas"
             :key="pregunta.id"
@@ -311,7 +311,7 @@ function restablecer(): void {
       </div>
 
       <!-- ============================================ formulario e import/export -->
-      <div class="flex min-h-0 flex-col gap-4 overflow-y-auto">
+      <div class="scroll-area flex min-h-0 flex-col gap-4 overflow-y-auto">
         <form class="flex flex-col gap-3 rounded-2xl border border-white/15 bg-ink/70 p-4" @submit.prevent="guardar">
           <h2 class="text-lg font-bold text-gold">
             {{ editandoId === null ? 'Nueva pregunta' : 'Editando pregunta' }}
