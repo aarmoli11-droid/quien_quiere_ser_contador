@@ -1,0 +1,86 @@
+[
+  {
+    "id": "q1",
+    "text": "Si compras un producto en ₡5.000 y lo vendes en ₡7.000, antes de otros gastos, ¿cuál es la diferencia?",
+    "options": ["₡2.000", "₡12.000", "₡5.000"],
+    "correctIndex": 0,
+    "difficulty": "facil",
+    "category": "calculo-basico"
+  },
+  {
+    "id": "q2",
+    "text": "¿Cuál de estas herramientas se utiliza ampliamente para trabajar información contable?",
+    "options": ["Excel", "Pintura", "Cámara fotográfica"],
+    "correctIndex": 0,
+    "difficulty": "facil",
+    "category": "herramientas"
+  },
+  {
+    "id": "q3",
+    "text": "¿Qué necesita una empresa para conocer si está obteniendo ganancias?",
+    "options": ["Analizar sus ingresos y costos/gastos", "Comprar más productos", "Cambiar el logo"],
+    "correctIndex": 0,
+    "difficulty": "facil",
+    "category": "conceptos"
+  },
+  {
+    "id": "q4",
+    "text": "¿Cuál característica es importante en un profesional contable?",
+    "options": ["Responsabilidad y ética", "Desorden", "Improvisación permanente"],
+    "correctIndex": 0,
+    "difficulty": "facil",
+    "category": "perfil-profesional"
+  },
+  {
+    "id": "q5",
+    "text": "¿Qué representa el dinero que recibe una empresa por sus ventas?",
+    "options": ["Un ingreso", "Una deuda", "Una pérdida"],
+    "correctIndex": 0,
+    "difficulty": "facil",
+    "category": "conceptos"
+  },
+  {
+    "id": "q6",
+    "text": "Si una empresa compra una computadora para utilizarla en su trabajo, ¿qué está realizando?",
+    "options": ["Una compra", "Una venta", "Una devolución"],
+    "correctIndex": 0,
+    "difficulty": "facil",
+    "category": "conceptos"
+  },
+  {
+    "id": "q7",
+    "text": "¿Cuál de estos documentos puede utilizarse como comprobante de una compra?",
+    "options": ["Factura", "Fotografía de un paisaje", "Invitación de cumpleaños"],
+    "correctIndex": 0,
+    "difficulty": "facil",
+    "category": "documentos"
+  },
+  {
+    "id": "q8",
+    "text": "¿Para qué sirve un presupuesto?",
+    "options": ["Para planificar ingresos y gastos", "Para decorar una oficina", "Para escoger el uniforme"],
+    "correctIndex": 0,
+    "difficulty": "facil",
+    "category": "conceptos"
+  },
+  {
+    "id": "q9",
+    "text": "Una empresa vende ₡10.000 y sus gastos son ₡6.000. Sin considerar otros elementos, ¿cuál es la diferencia?",
+    "options": ["₡4.000", "₡16.000", "₡6.000"],
+    "correctIndex": 0,
+    "difficulty": "facil",
+    "category": "calculo-basico"
+  },
+  {
+    "id": "q10",
+    "text": "¿Cuál de estas opciones representa una posible ventaja de estudiar Contabilidad?",
+    "options": [
+      "Desarrollar conocimientos para trabajar, emprender y continuar estudiando",
+      "Aprender solamente a utilizar una calculadora",
+      "Trabajar únicamente en un banco"
+    ],
+    "correctIndex": 0,
+    "difficulty": "facil",
+    "category": "perfil-profesional"
+  }
+]
