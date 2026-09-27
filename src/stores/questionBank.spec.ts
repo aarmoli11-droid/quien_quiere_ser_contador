@@ -9,12 +9,16 @@ import { useQuestionBankStore } from './questionBank'
 const STORAGE_KEY = 'qqsc.banco.v1'
 const SEED = parseQuestionBank(seedQuestions)
 
-/** Instala un Pinia limpio y devuelve el store ya cargado. */
+/**
+ * Instala un Pinia limpio y devuelve el store.
+ *
+ * No llama a `store.load()`: la carga tiene que ocurrir sola al crear el store,
+ * que es como ocurre en la aplicación. Si el helper la llamara, estos tests
+ * pasarían aunque la carga automática estuviera rota, que es justo lo que pasó.
+ */
 function nuevoStore() {
   setActivePinia(createPinia())
-  const store = useQuestionBankStore()
-  store.load()
-  return store
+  return useQuestionBankStore()
 }
 
 const valida: Question = {
@@ -31,11 +35,51 @@ describe('carga inicial', () => {
     localStorage.clear()
   })
 
-  it('carga la semilla cuando no hay nada guardado', () => {
+  it('carga la semilla sin que nadie llame a load()', () => {
+    // El store tiene que traerse el banco solo. Si hiciera falta una llamada
+    // explícita a `load()`, la aplicación arrancaría con el banco vacío
+    // siempre que un consumidor leyera las preguntas antes de esa llamada.
     const store = nuevoStore()
 
     expect(store.count).toBe(10)
     expect(store.questions.map((q) => q.id)).toEqual(SEED.map((q) => q.id))
+  })
+
+  it('no sobrescribe lo que el anfitrión ya había guardado', () => {
+    // Regresión: una precarga incondicional destruiría el trabajo del panel de
+    // administración en cada visita.
+    const propias = [
+      { ...valida, id: 'mía-1', text: 'Pregunta propia del anfitrión' },
+      { ...valida, id: 'mía-2', text: 'Otra pregunta propia' },
+    ]
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, questions: propias }))
+
+    const store = nuevoStore()
+
+    expect(store.count).toBe(2)
+    expect(store.questions[0]?.text).toBe('Pregunta propia del anfitrión')
+  })
+
+  it('conserva un banco que el anfitrion vacio a proposito', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, questions: [] }))
+
+    expect(nuevoStore().count).toBe(0)
+  })
+
+  it('deja el banco disponible para un segundo consumidor', () => {
+    // La semilla se persiste en la primera visita, así que aunque alguien
+    // borrara el almacenamiento a media partida, la recarga siguiente lo
+    // recupera desde la semilla en lugar de mostrar un banco vacío.
+    nuevoStore()
+    localStorage.removeItem(STORAGE_KEY)
+
+    expect(nuevoStore().count).toBe(10)
+  })
+
+  it('carga la semilla cuando no hay nada guardado', () => {
+    const store = nuevoStore()
+
+    expect(store.count).toBe(10)
   })
 
   it('persiste la semilla para no regenerarla en cada visita', () => {

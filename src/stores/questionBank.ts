@@ -195,6 +195,18 @@ export const useQuestionBankStore = defineStore('questionBank', () => {
     persistWarning.value = null
   }
 
+  /**
+   * Carga el banco al crear el store.
+   *
+   * Va aquí y no desde `App.vue` a propósito: un store de Pinia con esta forma
+   * se ejecuta la primera vez que alguien lo usa, así que poner la llamada dentro
+   * garantiza que cualquier consumidor —la pantalla de configuración, la arena o
+   * un test— encuentre el banco ya cargado. Si la llamada quedara fuera, basta
+   * con que un consumidor nuevo leyera `questions` antes de que otro lo
+   * inicializara para ver un banco vacío.
+   */
+  load()
+
   /** Preguntas jugables, que son todas: el banco solo guarda preguntas válidas. */
   const playable = computed<Question[]>(() => questions.value)
 
