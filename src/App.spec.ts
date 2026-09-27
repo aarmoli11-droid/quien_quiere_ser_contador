@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Question } from '@/types'
 import { useGameStore } from '@/stores/game'
@@ -79,6 +79,37 @@ describe('App', () => {
 
     expect(game.phase).toBe('setup')
     expect(wrapper.text()).toContain('Iniciar partida')
+  })
+
+  it('vuelve a la configuración al salir de la partida', async () => {
+    // El enrutado por fases tiene que reaccionar al botón de salir igual que
+    // reacciona al de los resultados: si no, el clic se quedaría en la arena.
+    const { wrapper, game } = montar()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    game.startGame()
+    game.beginQuestion()
+    await wrapper.vm.$nextTick()
+
+    await wrapper.findAll('button').find((b) => b.text() === 'Salir de la partida')?.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(game.phase).toBe('setup')
+    expect(wrapper.text()).toContain('Iniciar partida')
+  })
+
+  it('mantiene el banco al salir de la partida', async () => {
+    const { wrapper, game } = montar()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    game.startGame()
+    game.beginQuestion()
+    await wrapper.vm.$nextTick()
+
+    await wrapper.findAll('button').find((b) => b.text() === 'Salir de la partida')?.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    // Lo que se pierde es la partida, no el trabajo de escribir las preguntas.
+    expect(useQuestionBankStore().questions).toHaveLength(BANCO.length)
+    expect(game.groups).toHaveLength(2)
   })
 
   it('abre y cierra el panel del banco de preguntas', async () => {

@@ -148,13 +148,34 @@ function alAgotarse(): void {
 function siguiente(): void {
   game.nextQuestion()
 }
+
+/**
+ * Abandona la partida y vuelve a la configuración.
+ *
+ * Se pide confirmación porque se pierde el progreso: un clic cerca del botón de
+ * revelar, en una pantalla compartida, dejaría la partida a medias sin que
+ * nadie se entere hasta que pase el rato.
+ *
+ * Solo se abandona la partida, nunca el banco: `backToSetup` deja las
+ * preguntas y los ajustes intactos, así que se puede volver a empezar con el
+ * mismo mazo sin volver a escribir nada.
+ */
+function salir(): void {
+  if (!window.confirm('¿Salir de la partida? Se perderá el progreso.')) return
+  game.backToSetup()
+}
 </script>
 
 <template>
   <section class="relative z-10 mx-auto flex h-full w-full max-w-7xl flex-col gap-4 px-6 py-6">
-    <!-- Cabecera: número de ronda, categoría y valor en juego. -->
-    <header class="flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center gap-3">
+    <!--
+      Cabecera fija de la partida: contador de ronda, título del programa, valor
+      en juego y salida. El título no estaba y, en mitad de una partida larga,
+      la pantalla perdía la identidad del programa; ahora es lo único que no
+      cambia nunca mientras se juega.
+    -->
+    <header class="grid items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
+      <div class="order-2 flex items-center gap-2 sm:order-1">
         <span class="rounded-full bg-white/10 px-3 py-1 text-sm font-bold tabular-nums">Pregunta {{ contador }}</span>
         <span
           v-if="game.isTiebreak"
@@ -162,8 +183,22 @@ function siguiente(): void {
         >
           Desempate
         </span>
+        <button
+          type="button"
+          class="ml-auto rounded-lg border border-white/25 px-3 py-1 text-xs font-semibold text-white/80 transition hover:border-miss hover:text-white sm:ml-0"
+          @click="salir"
+        >
+          Salir de la partida
+        </button>
       </div>
-      <div class="flex items-center gap-3 text-right">
+
+      <h1
+        class="order-1 text-center text-sm font-bold tracking-[0.35em] whitespace-nowrap text-gold/90 uppercase sm:order-none"
+      >
+        Quién quiere ser contador
+      </h1>
+
+      <div class="order-3 flex items-center justify-end gap-3 text-right">
         <span
           v-if="game.current?.category"
           class="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70"

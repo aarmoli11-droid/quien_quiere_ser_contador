@@ -313,4 +313,71 @@ describe('GameScreen', () => {
 
     expect(wrapper.text()).toContain('Contabilidad')
   })
+
+  it('mantiene el título del programa visible durante la partida', () => {
+    // Antes la cabecera solo tenía el contador: a mitad de una partida larga la
+    // pantalla perdía la identidad del programa.
+    preparar()
+    const wrapper = mount(GameScreen)
+
+    expect(wrapper.find('header h1').text()).toBe('Quién quiere ser contador')
+  })
+})
+
+describe('salir de la partida', () => {
+  it('vuelve a la configuración confirmando', async () => {
+    const game = preparar(2, true)
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const wrapper = mount(GameScreen)
+
+    await wrapper.findAll('button').find((b) => b.text() === 'Salir de la partida')?.trigger('click')
+
+    expect(confirmar).toHaveBeenCalledTimes(1)
+    expect(game.phase).toBe('setup')
+  })
+
+  it('no hace nada si el anfitrión se arrepiente', async () => {
+    // Un clic de más cerca del botón de revelar no debe tirar la partida.
+    const game = preparar(2, true)
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const wrapper = mount(GameScreen)
+
+    await wrapper.findAll('button').find((b) => b.text() === 'Salir de la partida')?.trigger('click')
+
+    expect(game.phase).toBe('open')
+  })
+
+  it('conserva el banco de preguntas y los grupos', async () => {
+    // Es lo importante de salir: se pierde la partida, no el trabajo de haber
+    // escrito las preguntas a mano ni los ajustes de la sala.
+    const game = preparar(3, true)
+    const bank = useQuestionBankStore()
+    const preguntasAntes = bank.questions.length
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const wrapper = mount(GameScreen)
+
+    await wrapper.findAll('button').find((b) => b.text() === 'Salir de la partida')?.trigger('click')
+
+    expect(bank.questions).toHaveLength(preguntasAntes)
+    expect(bank.questions.every((q) => q.id.startsWith('q'))).toBe(true)
+    expect(game.groups).toHaveLength(3)
+    expect(game.groups.map((g) => g.name)).toEqual(['Equipo 1', 'Equipo 2', 'Equipo 3'])
+    expect(game.questionCount).toBe(3)
+  })
+
+  it('deja la partida preparada para volver a empezar', async () => {
+    const game = preparar(2, true)
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const wrapper = mount(GameScreen)
+
+    await wrapper.findAll('button').find((b) => b.text() === 'Salir de la partida')?.trigger('click')
+
+    // Sin puntos ni preguntas marcadas, para que el siguiente intento empiece
+    // de verdad y no con la mitad de la partida anterior.
+    expect(game.groups.every((g) => g.score === 0)).toBe(true)
+    expect(game.groups.every((g) => g.currentAnswer === null)).toBe(true)
+    expect(game.current).toBeNull()
+    expect(game.questionNumber).toBe(0)
+    expect(game.canStart).toBe(true)
+  })
 })
